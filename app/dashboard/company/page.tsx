@@ -20,7 +20,7 @@ interface Company {
 }
 
 export default function CompanyPage() {
-  const [company, setCompany] = useState<Company | null>(null);
+  const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -29,37 +29,30 @@ export default function CompanyPage() {
   const {
     register,
     handleSubmit,
-    setValue,
+    reset,
     formState: { errors },
   } = useForm<CompanyFormData>();
 
-  // Fetch existing company data
+  // Fetch existing companies data
   useEffect(() => {
-    const fetchCompany = async () => {
+    const fetchCompanies = async () => {
       try {
         const response = await fetch("/api/company", {
           credentials: "include",
         });
         if (response.ok) {
           const data = await response.json();
-          if (data.company) {
-            setCompany(data.company);
-            // Pre-fill form with existing data
-            setValue("name", data.company.name);
-            setValue("logoUrl", data.company.logoUrl || "");
-            setValue("website", data.company.website || "");
-            setValue("contact", data.company.contact || "");
-          }
+          setCompanies(data.companies || []);
         }
-              } catch {
-          console.error("Error fetching company");
-        } finally {
+      } catch {
+        console.error("Error fetching companies");
+      } finally {
         setLoading(false);
       }
     };
 
-    fetchCompany();
-  }, [setValue]);
+    fetchCompanies();
+  }, []);
 
   const onSubmit = async (data: CompanyFormData) => {
     setSaving(true);
@@ -79,16 +72,16 @@ export default function CompanyPage() {
 
       if (response.ok) {
         setMessage({ type: "success", text: result.message });
-        // Refresh company data
-        const companyResponse = await fetch("/api/company", {
+        // Refresh companies data
+        const companiesResponse = await fetch("/api/company", {
           credentials: "include",
         });
-        if (companyResponse.ok) {
-          const companyData = await companyResponse.json();
-          if (companyData.company) {
-            setCompany(companyData.company);
-          }
+        if (companiesResponse.ok) {
+          const companiesData = await companiesResponse.json();
+          setCompanies(companiesData.companies || []);
         }
+        // Reset form
+        reset();
       } else {
         setMessage({ type: "error", text: result.error || "Failed to save company" });
       }
@@ -96,6 +89,36 @@ export default function CompanyPage() {
       setMessage({ type: "error", text: "An error occurred while saving" });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDeleteCompany = async (companyId: number) => {
+    if (!confirm("Are you sure you want to delete this company?")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/company/${companyId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        setMessage({ type: "success", text: "Company deleted successfully" });
+        // Refresh companies data
+        const companiesResponse = await fetch("/api/company", {
+          credentials: "include",
+        });
+        if (companiesResponse.ok) {
+          const companiesData = await companiesResponse.json();
+          setCompanies(companiesData.companies || []);
+        }
+      } else {
+        const result = await response.json();
+        setMessage({ type: "error", text: result.error || "Failed to delete company" });
+      }
+    } catch {
+      setMessage({ type: "error", text: "An error occurred while deleting" });
     }
   };
 
@@ -108,12 +131,12 @@ export default function CompanyPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-4xl mx-auto">
       <div className="bg-white shadow rounded-lg p-6">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Company Profile</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Company Management</h1>
           <p className="text-gray-600">
-            {company ? "Update your company information" : "Add your company information"}
+            Create and manage your company profiles
           </p>
         </div>
 
@@ -129,7 +152,7 @@ export default function CompanyPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 mb-8">
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
               Company Name *
@@ -209,50 +232,71 @@ export default function CompanyPage() {
               disabled={saving}
               className="px-4 py-2 border border-transparent text-black rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
             >
-              {saving ? "Saving..." : company ? "Update Company" : "Create Company"}
+              {saving ? "Creating..." : "Create Company"}
             </button>
           </div>
         </form>
 
-        {company && (
-          <div className="mt-8 pt-6 border-t border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Current Company Information</h3>
-            <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-              <div>
-                <span className="font-medium text-gray-700">Name:</span> {company.name}
-              </div>
-              {company.logoUrl && (
-                <div>
-                  <span className="font-medium text-gray-700">Logo:</span>{" "}
-                  <a
-                    href={company.logoUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-indigo-600 hover:text-indigo-500"
-                  >
-                    {company.logoUrl}
-                  </a>
+        {/* Companies List */}
+        {companies.length > 0 && (
+          <div className="border-t border-gray-200 pt-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Your Companies</h3>
+            <div className="space-y-4">
+              {companies.map((company) => (
+                <div key={company.id} className="bg-gray-50 rounded-lg p-4">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900">{company.name}</h4>
+                      <div className="mt-2 space-y-1 text-sm text-gray-600">
+                        {company.website && (
+                          <div>
+                            <span className="font-medium">Website:</span>{" "}
+                            <a
+                              href={company.website}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-indigo-600 hover:text-indigo-500"
+                            >
+                              {company.website}
+                            </a>
+                          </div>
+                        )}
+                        {company.contact && (
+                          <div>
+                            <span className="font-medium">Contact:</span> {company.contact}
+                          </div>
+                        )}
+                        {company.logoUrl && (
+                          <div>
+                            <span className="font-medium">Logo:</span>{" "}
+                            <a
+                              href={company.logoUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-indigo-600 hover:text-indigo-500"
+                            >
+                              {company.logoUrl}
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleDeleteCompany(company.id)}
+                      className="ml-4 px-3 py-1 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
-              )}
-              {company.website && (
-                <div>
-                  <span className="font-medium text-gray-700">Website:</span>{" "}
-                  <a
-                    href={company.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-indigo-600 hover:text-indigo-500"
-                  >
-                    {company.website}
-                  </a>
-                </div>
-              )}
-              {company.contact && (
-                <div>
-                  <span className="font-medium text-gray-700">Contact:</span> {company.contact}
-                </div>
-              )}
+              ))}
             </div>
+          </div>
+        )}
+
+        {companies.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            <p>No companies created yet. Create your first company above.</p>
           </div>
         )}
       </div>

@@ -34,7 +34,7 @@ interface ECard {
 }
 
 export default function ECardPage() {
-  const [ecard, setEcard] = useState<ECard | null>(null);
+  const [ecards, setEcards] = useState<ECard[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -44,7 +44,7 @@ export default function ECardPage() {
   const {
     register,
     handleSubmit,
-    setValue,
+    reset,
     watch,
     formState: { errors },
   } = useForm<ECardFormData>();
@@ -52,36 +52,26 @@ export default function ECardPage() {
   // Watch form values for live preview
   const watchedValues = watch();
 
-  // Fetch existing e-card data and companies
+  // Fetch existing e-cards data and companies
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch user's e-card
-        const ecardResponse = await fetch("/api/ecard/user");
+        // Fetch user's e-cards
+        const ecardResponse = await fetch("/api/ecard/user", {
+          credentials: "include",
+        });
         if (ecardResponse.ok) {
           const ecardData = await ecardResponse.json();
-          if (ecardData.ecard) {
-            setEcard(ecardData.ecard);
-            // Pre-fill form with existing data
-            setValue("username", ecardData.ecard.username);
-            setValue("fullName", ecardData.ecard.fullName);
-            setValue("title", ecardData.ecard.title || "");
-            setValue("phone", ecardData.ecard.phone || "");
-            setValue("email", ecardData.ecard.email || "");
-            setValue("linkedin", ecardData.ecard.linkedin || "");
-            setValue("companyId", ecardData.ecard.companyId?.toString() || "");
-          }
+          setEcards(ecardData.ecards || []);
         }
 
-        // Fetch user's company
+        // Fetch user's companies
         const companyResponse = await fetch("/api/company", {
           credentials: "include",
         });
         if (companyResponse.ok) {
           const companyData = await companyResponse.json();
-          if (companyData.company) {
-            setCompanies([companyData.company]);
-          }
+          setCompanies(companyData.companies || []);
         }
       } catch {
         console.error("Error fetching data");
@@ -91,7 +81,7 @@ export default function ECardPage() {
     };
 
     fetchData();
-  }, [setValue]);
+  }, []);
 
   const onSubmit = async (data: ECardFormData) => {
     setSaving(true);
@@ -103,6 +93,7 @@ export default function ECardPage() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify(data),
       });
 
@@ -110,14 +101,16 @@ export default function ECardPage() {
 
       if (response.ok) {
         setMessage({ type: "success", text: result.message });
-        // Refresh e-card data
-        const ecardResponse = await fetch("/api/ecard/user");
+        // Refresh e-cards data
+        const ecardResponse = await fetch("/api/ecard/user", {
+          credentials: "include",
+        });
         if (ecardResponse.ok) {
           const ecardData = await ecardResponse.json();
-          if (ecardData.ecard) {
-            setEcard(ecardData.ecard);
-          }
+          setEcards(ecardData.ecards || []);
         }
+        // Reset form
+        reset();
       } else {
         setMessage({ type: "error", text: result.error || "Failed to save e-card" });
       }
@@ -125,6 +118,36 @@ export default function ECardPage() {
       setMessage({ type: "error", text: "An error occurred while saving" });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDeleteEcard = async (ecardId: number) => {
+    if (!confirm("Are you sure you want to delete this e-card?")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/ecard/${ecardId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        setMessage({ type: "success", text: "E-card deleted successfully" });
+        // Refresh e-cards data
+        const ecardResponse = await fetch("/api/ecard/user", {
+          credentials: "include",
+        });
+        if (ecardResponse.ok) {
+          const ecardData = await ecardResponse.json();
+          setEcards(ecardData.ecards || []);
+        }
+      } else {
+        const result = await response.json();
+        setMessage({ type: "error", text: result.error || "Failed to delete e-card" });
+      }
+    } catch {
+      setMessage({ type: "error", text: "An error occurred while deleting" });
     }
   };
 
@@ -144,7 +167,7 @@ export default function ECardPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">E-Card Management</h1>
         <p className="text-gray-600">
-          {ecard ? "Update your digital business card" : "Create your digital business card"}
+          Create and manage your digital business cards
         </p>
       </div>
 
@@ -179,7 +202,7 @@ export default function ECardPage() {
                       message: "Username can only contain letters, numbers, hyphens, and underscores"
                     }
                   })}
-                  className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
+                  className={`w-full px-3 py-2 border rounded-md text-black shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
                     errors.username ? "border-red-300" : "border-gray-300"
                   }`}
                   placeholder="your-username"
@@ -200,7 +223,7 @@ export default function ECardPage() {
                   type="text"
                   id="fullName"
                   {...register("fullName", { required: "Full name is required" })}
-                  className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
+                  className={`w-full px-3 py-2 border rounded-md text-black shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
                     errors.fullName ? "border-red-300" : "border-gray-300"
                   }`}
                   placeholder="John Doe"
@@ -219,7 +242,7 @@ export default function ECardPage() {
                 type="text"
                 id="title"
                 {...register("title")}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md  text-black shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 placeholder="Software Engineer"
               />
             </div>
@@ -233,7 +256,7 @@ export default function ECardPage() {
                   type="tel"
                   id="phone"
                   {...register("phone")}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md  text-black shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                   placeholder="+1 (555) 123-4567"
                 />
               </div>
@@ -246,7 +269,7 @@ export default function ECardPage() {
                   type="email"
                   id="email"
                   {...register("email")}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md  text-black shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                   placeholder="john@example.com"
                 />
               </div>
@@ -260,7 +283,7 @@ export default function ECardPage() {
                 type="url"
                 id="linkedin"
                 {...register("linkedin")}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md  text-black shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 placeholder="https://linkedin.com/in/johndoe"
               />
             </div>
@@ -272,7 +295,7 @@ export default function ECardPage() {
               <select
                 id="companyId"
                 {...register("companyId")}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md  text-black shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               >
                 <option value="">No company</option>
                 {companies.map((company) => (
@@ -295,7 +318,7 @@ export default function ECardPage() {
               <button
                 type="button"
                 onClick={() => router.push("/dashboard")}
-                className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                className="px-4 py-2 border border-gray-300 rounded-md  text-black shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
                 Cancel
               </button>
@@ -304,7 +327,7 @@ export default function ECardPage() {
                 disabled={saving}
                 className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
               >
-                {saving ? "Saving..." : ecard ? "Update E-Card" : "Create E-Card"}
+                {saving ? "Creating..." : "Create E-Card"}
               </button>
             </div>
           </form>
@@ -327,6 +350,66 @@ export default function ECardPage() {
           />
         </div>
       </div>
+
+      {/* E-Cards List */}
+      {ecards.length > 0 && (
+        <div className="mt-8 bg-white shadow rounded-lg p-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Your E-Cards</h3>
+          <div className="space-y-4">
+            {ecards.map((ecard) => (
+              <div key={ecard.id} className="border border-gray-200 rounded-lg p-4">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-3">
+                      <h4 className="font-medium text-gray-900">{ecard.fullName}</h4>
+                      <span className="text-sm text-gray-500">@{ecard.username}</span>
+                    </div>
+                    {ecard.title && (
+                      <p className="text-sm text-gray-600 mt-1">{ecard.title}</p>
+                    )}
+                    {ecard.company && (
+                      <p className="text-sm text-gray-600 mt-1">at {ecard.company.name}</p>
+                    )}
+                    <div className="mt-3 flex items-center space-x-4">
+                      <a
+                        href={`/u/${ecard.username}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-1 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 transition-colors"
+                      >
+                        View Public E-Card
+                      </a>
+                      <a
+                        href={`/api/ecard/qr/${ecard.username}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors"
+                      >
+                        Get QR Code
+                      </a>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">
+                      URL: <code className="bg-gray-100 px-1 py-0.5 rounded">cardlink.com/u/{ecard.username}</code>
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteEcard(ecard.id)}
+                    className="ml-4 px-3 py-1 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {ecards.length === 0 && (
+        <div className="mt-8 bg-white shadow rounded-lg p-6 text-center text-gray-500">
+          <p>No e-cards created yet. Create your first e-card above.</p>
+        </div>
+      )}
     </div>
   );
 }

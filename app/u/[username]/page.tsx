@@ -1,11 +1,38 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import Image from "next/image";
+import { Metadata } from "next";
+import QRCode from "qrcode";
 
 interface ECardPageProps {
   params: Promise<{
     username: string;
   }>;
+}
+
+export async function generateMetadata({ params }: ECardPageProps): Promise<Metadata> {
+  const { username } = await params;
+  
+  const ecard = await prisma.eCard.findUnique({
+    where: { username },
+    include: { company: true },
+  });
+
+  if (!ecard) {
+    return {
+      title: 'E-Card Not Found',
+    };
+  }
+
+  return {
+    title: `${ecard.fullName} - Digital Business Card`,
+    description: `${ecard.fullName}${ecard.title ? ` - ${ecard.title}` : ''}${ecard.company?.name ? ` at ${ecard.company.name}` : ''}`,
+    openGraph: {
+      title: `${ecard.fullName} - Digital Business Card`,
+      description: `${ecard.fullName}${ecard.title ? ` - ${ecard.title}` : ''}${ecard.company?.name ? ` at ${ecard.company.name}` : ''}`,
+      type: 'website',
+    },
+  };
 }
 
 export default async function ECardPage({ params }: ECardPageProps) {
@@ -31,7 +58,7 @@ export default async function ECardPage({ params }: ECardPageProps) {
     notFound();
   }
 
-  // Increment view count
+  // Increment view count and ensure QR code exists
   await prisma.eCard.update({
     where: {
       id: ecard.id,
@@ -40,6 +67,10 @@ export default async function ECardPage({ params }: ECardPageProps) {
       views: {
         increment: 1,
       },
+      // Generate QR code if it doesn't exist
+      ...(ecard.qrCodeUrl ? {} : {
+        qrCodeUrl: await QRCode.toDataURL(`${process.env.NEXTAUTH_URL || process.env.VERCEL_URL || 'http://localhost:3000'}/u/${username}`)
+      }),
     },
   });
 
@@ -56,9 +87,7 @@ export default async function ECardPage({ params }: ECardPageProps) {
                 width={80}
                 height={80}
                 className="mx-auto rounded-lg object-contain"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                }}
+                unoptimized
               />
             </div>
           )}
@@ -139,13 +168,14 @@ export default async function ECardPage({ params }: ECardPageProps) {
             <div className="mt-8 pt-6 border-t border-gray-200">
               <p className="text-sm text-gray-500 mb-3">Scan to save contact</p>
               <div className="flex justify-center">
-                <Image
-                  src={ecard.qrCodeUrl}
-                  alt="QR Code"
-                  width={120}
-                  height={120}
-                  className="rounded-lg"
-                />
+                              <Image
+                src={ecard.qrCodeUrl}
+                alt="QR Code"
+                width={120}
+                height={120}
+                className="rounded-lg"
+                unoptimized
+              />
               </div>
             </div>
           )}

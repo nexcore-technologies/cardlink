@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-// GET - Fetch user's company
+// GET - Fetch user's companies
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
@@ -23,15 +23,18 @@ export async function GET() {
 
     const userId = parseInt(session.user.id);
 
-    const company = await prisma.company.findUnique({
+    const companies = await prisma.company.findMany({
       where: {
         ownerId: userId,
       },
+      orderBy: {
+        id: 'desc'
+      }
     });
 
-    return NextResponse.json({ company });
+    return NextResponse.json({ companies });
   } catch (error) {
-    console.error("Error fetching company:", error);
+    console.error("Error fetching companies:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -39,7 +42,7 @@ export async function GET() {
   }
 }
 
-// POST - Create or update company
+// POST - Create new company
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -62,47 +65,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if user already has a company
-    const existingCompany = await prisma.company.findUnique({
-      where: {
+    // Create new company
+    const company = await prisma.company.create({
+      data: {
+        name,
+        logoUrl: logoUrl || null,
+        website: website || null,
+        contact: contact || null,
         ownerId: userId,
       },
     });
 
-    let company;
-
-    if (existingCompany) {
-      // Update existing company
-      company = await prisma.company.update({
-        where: {
-          id: existingCompany.id,
-        },
-        data: {
-          name,
-          logoUrl: logoUrl || null,
-          website: website || null,
-          contact: contact || null,
-        },
-      });
-    } else {
-      // Create new company
-      company = await prisma.company.create({
-        data: {
-          name,
-          logoUrl: logoUrl || null,
-          website: website || null,
-          contact: contact || null,
-          ownerId: userId,
-        },
-      });
-    }
-
     return NextResponse.json({
-      message: existingCompany ? "Company updated successfully" : "Company created successfully",
+      message: "Company created successfully",
       company,
     });
   } catch (error) {
-    console.error("Error creating/updating company:", error);
+    console.error("Error creating company:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
