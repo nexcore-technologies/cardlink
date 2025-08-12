@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -7,9 +8,13 @@ export const dynamic = "force-dynamic";
 // GET - Fetch user's company
 export async function GET() {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
+    
+    console.log("Company API - Session:", session);
+    console.log("Company API - User ID:", session?.user?.id);
 
     if (!session?.user?.id) {
+      console.log("Company API - Unauthorized: No session or user ID");
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
@@ -37,7 +42,7 @@ export async function GET() {
 // POST - Create or update company
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
 
     if (!session?.user?.id) {
       return NextResponse.json(

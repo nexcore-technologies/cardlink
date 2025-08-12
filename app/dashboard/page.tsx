@@ -4,14 +4,24 @@ import { prisma } from "@/lib/prisma";
 export default async function DashboardPage() {
   const session = await getServerSession();
   
-  // Fetch user's company if they have one
+  // Fetch user's company and e-card if they have one
   let company = null;
+  let ecard = null;
   if (session?.user?.id) {
-    company = await prisma.company.findUnique({
-      where: {
-        ownerId: parseInt(session.user.id),
-      },
-    });
+    const userId = parseInt(session.user.id);
+    
+    [company, ecard] = await Promise.all([
+      prisma.company.findUnique({
+        where: {
+          ownerId: userId,
+        },
+      }),
+      prisma.eCard.findUnique({
+        where: {
+          ownerId: userId,
+        },
+      }),
+    ]);
   }
 
   return (
@@ -33,13 +43,25 @@ export default async function DashboardPage() {
       <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white border border-gray-200 rounded-lg p-4">
           <h3 className="font-semibold text-gray-900 mb-2">ECards</h3>
-          <p className="text-2xl font-bold text-indigo-600">0</p>
-          <p className="text-sm text-gray-500">Total cards created</p>
+          <p className="text-2xl font-bold text-indigo-600">
+            {ecard ? "1" : "0"}
+          </p>
+          <p className="text-sm text-gray-500">
+            {ecard ? "Card created" : "No cards created"}
+          </p>
+          <a
+            href="/dashboard/ecard"
+            className="mt-2 inline-block text-sm text-indigo-600 hover:text-indigo-500"
+          >
+            {ecard ? "Edit E-Card" : "Create E-Card"}
+          </a>
         </div>
         
         <div className="bg-white border border-gray-200 rounded-lg p-4">
           <h3 className="font-semibold text-gray-900 mb-2">Views</h3>
-          <p className="text-2xl font-bold text-green-600">0</p>
+          <p className="text-2xl font-bold text-green-600">
+            {ecard?.views || 0}
+          </p>
           <p className="text-sm text-gray-500">Total card views</p>
         </div>
         

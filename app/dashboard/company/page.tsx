@@ -37,7 +37,9 @@ export default function CompanyPage() {
   useEffect(() => {
     const fetchCompany = async () => {
       try {
-        const response = await fetch("/api/company");
+        const response = await fetch("/api/company", {
+          credentials: "include",
+        });
         if (response.ok) {
           const data = await response.json();
           if (data.company) {
@@ -69,6 +71,7 @@ export default function CompanyPage() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify(data),
       });
 
@@ -77,7 +80,9 @@ export default function CompanyPage() {
       if (response.ok) {
         setMessage({ type: "success", text: result.message });
         // Refresh company data
-        const companyResponse = await fetch("/api/company");
+        const companyResponse = await fetch("/api/company", {
+          credentials: "include",
+        });
         if (companyResponse.ok) {
           const companyData = await companyResponse.json();
           if (companyData.company) {
@@ -133,7 +138,7 @@ export default function CompanyPage() {
               type="text"
               id="name"
               {...register("name", { required: "Company name is required" })}
-              className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
+              className={`w-full px-3 py-2 border text-black rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
                 errors.name ? "border-red-300" : "border-gray-300"
               }`}
               placeholder="Enter company name"
@@ -151,7 +156,7 @@ export default function CompanyPage() {
               type="url"
               id="logoUrl"
               {...register("logoUrl")}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-gray-300 text-black rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               placeholder="https://example.com/logo.png"
             />
             <p className="mt-1 text-sm text-gray-500">
@@ -167,7 +172,7 @@ export default function CompanyPage() {
               type="url"
               id="website"
               {...register("website")}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-gray-300 text-black rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               placeholder="https://example.com"
             />
             <p className="mt-1 text-sm text-gray-500">
@@ -183,8 +188,8 @@ export default function CompanyPage() {
               type="tel"
               id="contact"
               {...register("contact")}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              placeholder="+1 (555) 123-4567"
+              className="w-full px-3 py-2 border border-gray-300 text-black rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              placeholder="+233 24 123 4567"
             />
             <p className="mt-1 text-sm text-gray-500">
               Enter your company contact number
@@ -195,14 +200,14 @@ export default function CompanyPage() {
             <button
               type="button"
               onClick={() => router.push("/dashboard")}
-              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="px-4 py-2 border border-gray-300 text-black rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+              className="px-4 py-2 border border-transparent text-black rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
             >
               {saving ? "Saving..." : company ? "Update Company" : "Create Company"}
             </button>
