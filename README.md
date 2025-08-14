@@ -1,36 +1,141 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CardLink - Digital Business Card Platform
 
-## Getting Started
+A modern, professional digital business card platform built with Next.js, featuring beautiful UI design, QR code generation, and seamless sharing capabilities.
 
-First, run the development server:
+## 🚀 Features
+
+- **Modern UI Design** - Clean, professional interface with glass morphism effects
+- **Digital Business Cards** - Create and customize your digital business card
+- **QR Code Generation** - Automatic QR code generation for easy sharing
+- **Company Profiles** - Manage company information and branding
+- **Cover Images** - Optional cover images for personalized backgrounds
+- **Profile Images** - Upload and manage profile pictures
+- **Responsive Design** - Works perfectly on desktop and mobile devices
+- **Authentication** - Secure user authentication with NextAuth.js
+- **Database** - MySQL database with Prisma ORM
+
+## 🛠️ Tech Stack
+
+- **Frontend**: Next.js 15, React, TypeScript
+- **Styling**: Tailwind CSS, Custom CSS
+- **Authentication**: NextAuth.js
+- **Database**: MySQL with Prisma ORM
+- **Image Processing**: Sharp for image optimization
+- **QR Codes**: qrcode library
+- **Deployment**: Vercel-ready
+
+## 📋 Prerequisites
+
+- Node.js 18+ 
+- MySQL database
+- npm or yarn
+
+## 🚀 Getting Started
+
+### 1. Clone the repository
+
+```bash
+git clone <repository-url>
+cd cardlink
+```
+
+### 2. Install dependencies
+
+```bash
+npm install
+```
+
+### 3. Set up environment variables
+
+Create a `.env` file in the root directory:
+
+```env
+# Database
+DATABASE_URL="mysql://username:password@localhost:3306/cardlink"
+
+# NextAuth.js
+NEXTAUTH_SECRET="your-secret-key-here"
+NEXTAUTH_URL="http://localhost:3000"
+
+# For production (Vercel)
+VERCEL_URL="https://your-domain.vercel.app"
+```
+
+### 4. Set up the database
+
+```bash
+# Run database migrations
+npx prisma migrate dev
+
+# Generate Prisma client
+npx prisma generate
+```
+
+### 5. Create a test user (optional)
+
+```bash
+node scripts/create-test-user.js
+```
+
+### 6. Run the development server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📱 Usage
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. **Sign up/Login** - Create an account or log in
+2. **Create E-Card** - Fill in your information and upload images
+3. **Customize** - Add cover images, company logos, and contact details
+4. **Share** - Use the generated URL or QR code to share your card
+5. **Manage** - Edit, update, or delete your cards as needed
 
-## Learn More
+## 🎨 Design Features
 
-To learn more about Next.js, take a look at the following resources:
+- **Glass Morphism** - Modern backdrop blur effects
+- **Gradient Backgrounds** - Beautiful animated gradients
+- **Smooth Animations** - Subtle hover and transition effects
+- **Professional Typography** - Inter and Poppins fonts
+- **Responsive Layout** - Optimized for all screen sizes
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🔧 API Endpoints
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `POST /api/ecard` - Create new e-card
+- `GET /api/ecard/user` - Get user's e-cards
+- `PUT /api/ecard/[id]` - Update e-card
+- `DELETE /api/ecard/[id]` - Delete e-card
+- `POST /api/company` - Create company
+- `GET /api/company` - Get user's companies
+- `POST /api/upload` - Upload images
 
-## Deploy on Vercel
+## 🚀 Deployment
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Deploy to Vercel
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Push your code to GitHub
+2. Connect your repository to Vercel
+3. Set up environment variables in Vercel dashboard
+4. Deploy!
+
+### Environment Variables for Production
+
+Make sure to set these in your Vercel dashboard:
+- `DATABASE_URL`
+- `NEXTAUTH_SECRET`
+- `NEXTAUTH_URL`
+- `VERCEL_URL`
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## 📞 Support
+
+For support, email support@nexcore.com or create an issue in this repository.
