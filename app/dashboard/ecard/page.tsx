@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import CardPreview from "@/components/ecard/CardPreview";
+import ImageUpload from "@/components/ui/ImageUpload";
 
 interface ECardFormData {
   username: string;
@@ -12,7 +13,13 @@ interface ECardFormData {
   phone: string;
   email: string;
   linkedin: string;
+  // Company selection or creation
+  companyOption: "existing" | "new" | "none";
   companyId: string;
+  companyName: string;
+  companyLogoUrl: string;
+  companyWebsite: string;
+  companyContact: string;
 }
 
 interface Company {
@@ -29,6 +36,7 @@ interface ECard {
   phone: string | null;
   email: string | null;
   linkedin: string | null;
+  profileImage: string | null;
   companyId: number | null;
   company: Company | null;
 }
@@ -39,6 +47,11 @@ export default function ECardPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [profileImage, setProfileImage] = useState<string>("");
+  const [coverImage, setCoverImage] = useState<string>("");
+  const [companyLogo, setCompanyLogo] = useState<string>("");
+  const [editingEcard, setEditingEcard] = useState<ECard | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
   const router = useRouter();
 
   const {
@@ -88,13 +101,61 @@ export default function ECardPage() {
     setMessage(null);
 
     try {
-      const response = await fetch("/api/ecard", {
-        method: "POST",
+      // Prepare the request data
+      const requestData: {
+        username: string;
+        fullName: string;
+        title: string;
+        phone: string;
+        email: string;
+        linkedin: string;
+        companyOption: string;
+        companyId: string | null;
+        companyName: string;
+        companyLogoUrl: string;
+        companyWebsite: string;
+        companyContact: string;
+        profileImage: string;
+        coverImage: string;
+        newCompany?: {
+          name: string;
+          logoUrl: string;
+          website: string;
+          contact: string;
+        };
+      } = {
+        ...data,
+        profileImage: profileImage,
+        coverImage: coverImage,
+      };
+
+      // Handle company creation if needed
+      if (data.companyOption === "new") {
+        requestData.newCompany = {
+          name: data.companyName,
+          logoUrl: companyLogo,
+          website: data.companyWebsite,
+          contact: data.companyContact,
+        };
+        // Clear companyId since we're creating a new one
+        requestData.companyId = null;
+      } else if (data.companyOption === "none") {
+        requestData.companyId = null;
+      }
+
+      const url = isEditMode && editingEcard 
+        ? `/api/ecard/${editingEcard.id}` 
+        : "/api/ecard";
+      
+      const method = isEditMode ? "PUT" : "POST";
+
+      const response = await fetch(url, {
+        method: method,
         headers: {
           "Content-Type": "application/json",
         },
         credentials: "include",
-        body: JSON.stringify(data),
+        body: JSON.stringify(requestData),
       });
 
       const result = await response.json();
@@ -111,6 +172,15 @@ export default function ECardPage() {
         }
         // Reset form
         reset();
+        setProfileImage("");
+        setCoverImage("");
+        setCompanyLogo("");
+        
+        // Exit edit mode if we were editing
+        if (isEditMode) {
+          setEditingEcard(null);
+          setIsEditMode(false);
+        }
       } else {
         setMessage({ type: "error", text: result.error || "Failed to save e-card" });
       }
@@ -151,8 +221,56 @@ export default function ECardPage() {
     }
   };
 
+  const handleEditEcard = (ecard: ECard) => {
+    setEditingEcard(ecard);
+    setIsEditMode(true);
+    
+    // Populate form with existing data
+    reset({
+      username: ecard.username,
+      fullName: ecard.fullName,
+      title: ecard.title || "",
+      phone: ecard.phone || "",
+      email: ecard.email || "",
+      linkedin: ecard.linkedin || "",
+      companyOption: ecard.companyId ? "existing" : "none",
+      companyId: ecard.companyId?.toString() || "",
+      companyName: "",
+      companyLogoUrl: "",
+      companyWebsite: "",
+      companyContact: "",
+    });
+    
+    setProfileImage(ecard.profileImage || "");
+    setCompanyLogo("");
+  };
+
+  const handleCancelEdit = () => {
+    setEditingEcard(null);
+    setIsEditMode(false);
+    reset();
+    setProfileImage("");
+    setCompanyLogo("");
+  };
+
   // Get selected company for preview
   const selectedCompany = companies.find(c => c.id.toString() === watchedValues.companyId);
+  
+  // Get company info for preview (existing or new)
+  const getCompanyInfo = () => {
+    if (watchedValues.companyOption === "existing" && selectedCompany) {
+      return {
+        name: selectedCompany.name,
+        logo: selectedCompany.logoUrl,
+      };
+    } else if (watchedValues.companyOption === "new") {
+      return {
+        name: watchedValues.companyName,
+        logo: companyLogo,
+      };
+    }
+    return { name: "", logo: "" };
+  };
 
   if (loading) {
     return (
@@ -174,6 +292,21 @@ export default function ECardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Form Section */}
         <div className="bg-white shadow rounded-lg p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-medium text-gray-900">
+              {isEditMode ? "Edit E-Card" : "Create New E-Card"}
+            </h2>
+            {isEditMode && (
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                className="text-sm text-gray-600 hover:text-gray-800"
+              >
+                Cancel Edit
+              </button>
+            )}
+          </div>
+
           {message && (
             <div
               className={`mb-4 p-4 rounded-md ${
@@ -247,6 +380,29 @@ export default function ECardPage() {
               />
             </div>
 
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Profile Image
+              </label>
+              <ImageUpload
+                onImageUpload={setProfileImage}
+                currentImage={profileImage}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Cover Image (Optional)
+              </label>
+              <ImageUpload
+                onImageUpload={setCoverImage}
+                currentImage={coverImage}
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                This will be the background image behind your profile picture
+              </p>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
@@ -288,30 +444,124 @@ export default function ECardPage() {
               />
             </div>
 
-            <div>
-              <label htmlFor="companyId" className="block text-sm font-medium text-gray-700 mb-2">
-                Company
-              </label>
-              <select
-                id="companyId"
-                {...register("companyId")}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md  text-black shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              >
-                <option value="">No company</option>
-                {companies.map((company) => (
-                  <option key={company.id} value={company.id}>
-                    {company.name}
-                  </option>
-                ))}
-              </select>
-              {companies.length === 0 && (
-                <p className="mt-1 text-sm text-gray-500">
-                  <a href="/dashboard/company" className="text-indigo-600 hover:text-indigo-500">
-                    Create a company profile
-                  </a>{" "}
-                  to link with your e-card
-                </p>
-              )}
+            {/* Company Section */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Company Information
+                </label>
+                <div className="space-y-3">
+                  <div className="flex space-x-2">
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        value="none"
+                        {...register("companyOption")}
+                        className="mr-2 text-black"
+                      />
+                      <span className="text-sm text-black">No company</span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        value="existing"
+                        {...register("companyOption")}
+                        className="mr-2 text-black"
+                      />
+                      <span className="text-sm text-black">Use existing company</span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        value="new"
+                        {...register("companyOption")}
+                        className="mr-2 text-black"
+                      />
+                      <span className="text-sm text-black">Create new company</span>
+                    </label>
+                  </div>
+
+                  {/* Existing Company Selection */}
+                  {watchedValues.companyOption === "existing" && (
+                    <div>
+                      <select
+                        {...register("companyId")}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-black shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      >
+                        <option value="">Select a company</option>
+                        {companies.map((company) => (
+                          <option key={company.id} value={company.id}>
+                            {company.name}
+                          </option>
+                        ))}
+                      </select>
+                      {companies.length === 0 && (
+                        <p className="mt-1 text-sm text-gray-500">
+                          No companies found. Create a new company instead.
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* New Company Creation */}
+                  {watchedValues.companyOption === "new" && (
+                    <div className="space-y-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                      <div>
+                        <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 mb-2">
+                          Company Name *
+                        </label>
+                        <input
+                          type="text"
+                          id="companyName"
+                          {...register("companyName", { 
+                            required: watchedValues.companyOption === "new" ? "Company name is required" : false 
+                          })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-black shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                          placeholder="Your Company Name"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Company Logo
+                        </label>
+                        <ImageUpload
+                          onImageUpload={setCompanyLogo}
+                          currentImage={companyLogo}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label htmlFor="companyWebsite" className="block text-sm font-medium text-gray-700 mb-2">
+                            Website
+                          </label>
+                          <input
+                            type="url"
+                            id="companyWebsite"
+                            {...register("companyWebsite")}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-black shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            placeholder="https://example.com"
+                          />
+                        </div>
+
+                        <div>
+                          <label htmlFor="companyContact" className="block text-sm font-medium text-gray-700 mb-2">
+                            Contact Number
+                          </label>
+                          <input
+                            type="tel"
+                            id="companyContact"
+                            {...register("companyContact")}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-black shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            placeholder="+1 (555) 123-4567"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             <div className="flex justify-end space-x-3">
@@ -327,7 +577,10 @@ export default function ECardPage() {
                 disabled={saving}
                 className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
               >
-                {saving ? "Creating..." : "Create E-Card"}
+                {saving 
+                  ? (isEditMode ? "Updating..." : "Creating...") 
+                  : (isEditMode ? "Update E-Card" : "Create E-Card")
+                }
               </button>
             </div>
           </form>
@@ -344,8 +597,10 @@ export default function ECardPage() {
               phone: watchedValues.phone || "",
               email: watchedValues.email || "",
               linkedin: watchedValues.linkedin || "",
-              companyName: selectedCompany?.name || "",
-              companyLogo: selectedCompany?.logoUrl || "",
+              profileImage: profileImage || "",
+              coverImage: coverImage || "",
+              companyName: getCompanyInfo().name || "",
+              companyLogo: getCompanyInfo().logo || "",
             }}
           />
         </div>
@@ -387,6 +642,12 @@ export default function ECardPage() {
                       >
                         Get QR Code
                       </a>
+                      <button
+                        onClick={() => handleEditEcard(ecard)}
+                        className="px-3 py-1 bg-indigo-600 text-white text-sm rounded-md hover:bg-indigo-700 transition-colors"
+                      >
+                        Edit
+                      </button>
                     </div>
                     <p className="text-xs text-gray-500 mt-2">
                       URL: <code className="bg-gray-100 px-1 py-0.5 rounded">cardlink.com/u/{ecard.username}</code>

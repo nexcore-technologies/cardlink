@@ -25,7 +25,7 @@ model User {
 model Company {
   id        Int     @id @default(autoincrement())
   name      String
-  logoUrl   String?
+  logoUrl   String? @db.Text
   website   String?
   contact   String?
   ownerId   Int
@@ -34,17 +34,19 @@ model Company {
 }
 
 model ECard {
-  id        Int      @id @default(autoincrement())
-  username  String   @unique
-  fullName  String
-  title     String?
-  phone     String?
-  email     String?
-  linkedin  String?
-  companyId Int?
-  company   Company? @relation(fields: [companyId], references: [id])
-  qrCodeUrl String? @db.Text
-  ownerId   Int
-  owner     User    @relation(fields: [ownerId], references: [id])
-  views     Int      @default(0)
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  fullName     String
+  title        String?
+  phone        String?
+  email        String?
+  linkedin     String?
+  profileImage String?  @db.Text
+  coverImage   String?  @db.Text
+  companyId    Int?
+  company      Company? @relation(fields: [companyId], references: [id])
+  qrCodeUrl    String?  @db.Text
+  ownerId      Int
+  owner        User     @relation(fields: [ownerId], references: [id])
+  views        Int      @default(0)
 }

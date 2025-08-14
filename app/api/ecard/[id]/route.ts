@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "../../auth/[...nextauth]/route";
 import { prisma } from "@/lib/prisma";
-import QRCode from "qrcode";
 
-export const dynamic = "force-dynamic";
-
-// PUT - Update specific e-card
+// PUT - Update existing e-card
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -22,8 +19,16 @@ export async function PUT(
     }
 
     const ecardId = parseInt(params.id);
+
+    if (!ecardId || isNaN(ecardId)) {
+      return NextResponse.json(
+        { error: "Invalid e-card ID" },
+        { status: 400 }
+      );
+    }
+
+    const { username, fullName, title, phone, email, linkedin, profileImage, companyId, newCompany } = await request.json();
     const userId = parseInt(session.user.id);
-    const { username, fullName, title, phone, email, linkedin, companyId } = await request.json();
 
     // Validate required fields
     if (!username || !fullName) {
@@ -43,36 +48,41 @@ export async function PUT(
 
     if (!existingEcard) {
       return NextResponse.json(
-        { error: "E-card not found" },
+        { error: "E-card not found or access denied" },
         { status: 404 }
       );
     }
 
     // Check if username is already taken by another e-card
-    const usernameTaken = await prisma.eCard.findFirst({
+    const usernameConflict = await prisma.eCard.findFirst({
       where: {
         username: username,
         id: { not: ecardId },
       },
     });
 
-    if (usernameTaken) {
+    if (usernameConflict) {
       return NextResponse.json(
         { error: "Username is already taken" },
         { status: 409 }
       );
     }
 
-    // Generate QR code
-    const baseUrl = process.env.NEXTAUTH_URL || process.env.VERCEL_URL || 'http://localhost:3000';
-    const qrCodeUrl = await QRCode.toDataURL(`${baseUrl}/u/${username}`, {
-      width: 200,
-      margin: 1,
-      color: {
-        dark: '#000000',
-        light: '#FFFFFF'
-      }
-    });
+    // Create company if needed
+    let finalCompanyId = companyId ? parseInt(companyId) : null;
+    
+    if (newCompany) {
+      const company = await prisma.company.create({
+        data: {
+          name: newCompany.name,
+          logoUrl: newCompany.logoUrl || null,
+          website: newCompany.website || null,
+          contact: newCompany.contact || null,
+          ownerId: userId,
+        },
+      });
+      finalCompanyId = company.id;
+    }
 
     // Update e-card
     const ecard = await prisma.eCard.update({
@@ -86,8 +96,8 @@ export async function PUT(
         phone: phone || null,
         email: email || null,
         linkedin: linkedin || null,
-        companyId: companyId ? parseInt(companyId) : null,
-        qrCodeUrl,
+        profileImage: profileImage || null,
+        companyId: finalCompanyId,
       },
       include: {
         company: true,
@@ -125,6 +135,13 @@ export async function DELETE(
     const ecardId = parseInt(params.id);
     const userId = parseInt(session.user.id);
 
+    if (!ecardId || isNaN(ecardId)) {
+      return NextResponse.json(
+        { error: "Invalid e-card ID" },
+        { status: 400 }
+      );
+    }
+
     // Check if e-card exists and belongs to user
     const existingEcard = await prisma.eCard.findFirst({
       where: {
@@ -135,7 +152,7 @@ export async function DELETE(
 
     if (!existingEcard) {
       return NextResponse.json(
-        { error: "E-card not found" },
+        { error: "E-card not found or access denied" },
         { status: 404 }
       );
     }

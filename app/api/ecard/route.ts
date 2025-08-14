@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { username, fullName, title, phone, email, linkedin, companyId } = await request.json();
+    const { username, fullName, title, phone, email, linkedin, profileImage, coverImage, companyId, newCompany } = await request.json();
     const userId = parseInt(session.user.id);
 
     // Validate required fields
@@ -88,6 +88,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Create company if needed
+    let finalCompanyId = companyId ? parseInt(companyId) : null;
+    
+    if (newCompany) {
+      const company = await prisma.company.create({
+        data: {
+          name: newCompany.name,
+          logoUrl: newCompany.logoUrl || null,
+          website: newCompany.website || null,
+          contact: newCompany.contact || null,
+          ownerId: userId,
+        },
+      });
+      finalCompanyId = company.id;
+    }
+
     // Generate QR code with smaller size and error correction
     const baseUrl = process.env.NEXTAUTH_URL || process.env.VERCEL_URL || 'http://localhost:3000';
     const qrCodeUrl = await QRCode.toDataURL(`${baseUrl}/u/${username}`, {
@@ -99,6 +115,14 @@ export async function POST(request: NextRequest) {
       }
     });
 
+    // Debug: Log the profile image size
+    if (profileImage) {
+      console.log('E-card creation debug:', {
+        profileImageLength: profileImage.length,
+        profileImagePreview: profileImage.substring(0, 100) + '...'
+      });
+    }
+
     // Create new e-card
     const ecard = await prisma.eCard.create({
       data: {
@@ -108,7 +132,9 @@ export async function POST(request: NextRequest) {
         phone: phone || null,
         email: email || null,
         linkedin: linkedin || null,
-        companyId: companyId ? parseInt(companyId) : null,
+        profileImage: profileImage || null,
+        coverImage: coverImage || null,
+        companyId: finalCompanyId,
         qrCodeUrl,
         ownerId: userId,
       },
