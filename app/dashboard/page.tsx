@@ -1,8 +1,11 @@
 import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
+import { authOptions } from "@/lib/auth";
+
+export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const session = await getServerSession();
+  const session = await getServerSession(authOptions);
   
   // Fetch user's company and e-card if they have one
   let company = null;

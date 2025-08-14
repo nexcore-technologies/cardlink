@@ -26,7 +26,7 @@ A modern, professional digital business card platform built with Next.js, featur
 
 ## 📋 Prerequisites
 
-- Node.js 18+ 
+- Node.js 18+
 - MySQL database
 - npm or yarn
 
@@ -123,6 +123,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 ### Environment Variables for Production
 
 Make sure to set these in your Vercel dashboard:
+
 - `DATABASE_URL`
 - `NEXTAUTH_SECRET`
 - `NEXTAUTH_URL`
@@ -138,4 +139,4 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 📞 Support
 
-For support, email support@nexcore.com or create an issue in this repository.
+For support, email support@thenexcoretech.com or create an issue in this repository.

@@ -100,7 +100,6 @@ export default async function ECardPage({ params }: ECardPageProps) {
           ) : (
             <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-indigo-100 opacity-80"></div>
           )}
-           
             </div>
             
             {/* Profile Picture and Info */}
