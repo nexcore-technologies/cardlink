@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 // PUT - Update existing company
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions) as { user: { id: string } } | null;
@@ -18,7 +18,8 @@ export async function PUT(
       );
     }
 
-    const companyId = parseInt(params.id);
+    const resolvedParams = await params;
+    const companyId = parseInt(resolvedParams.id);
     const userId = parseInt(session.user.id);
 
     if (!companyId || isNaN(companyId)) {
@@ -82,7 +83,7 @@ export async function PUT(
 // DELETE - Delete specific company
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions) as { user: { id: string } } | null;
@@ -94,7 +95,8 @@ export async function DELETE(
       );
     }
 
-    const companyId = parseInt(params.id);
+    const resolvedParams = await params;
+    const companyId = parseInt(resolvedParams.id);
     const userId = parseInt(session.user.id);
 
     if (!companyId || isNaN(companyId)) {

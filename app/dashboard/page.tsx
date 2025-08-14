@@ -11,12 +11,12 @@ export default async function DashboardPage() {
     const userId = parseInt(session.user.id);
     
     [company, ecard] = await Promise.all([
-      prisma.company.findUnique({
+      prisma.company.findFirst({
         where: {
           ownerId: userId,
         },
       }),
-      prisma.eCard.findUnique({
+      prisma.eCard.findFirst({
         where: {
           ownerId: userId,
         },

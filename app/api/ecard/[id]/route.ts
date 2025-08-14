@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 // PUT - Update existing e-card
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions) as { user: { id: string } } | null;
@@ -18,7 +18,8 @@ export async function PUT(
       );
     }
 
-    const ecardId = parseInt(params.id);
+    const resolvedParams = await params;
+    const ecardId = parseInt(resolvedParams.id);
 
     if (!ecardId || isNaN(ecardId)) {
       return NextResponse.json(
@@ -120,7 +121,7 @@ export async function PUT(
 // DELETE - Delete specific e-card
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions) as { user: { id: string } } | null;
@@ -132,7 +133,8 @@ export async function DELETE(
       );
     }
 
-    const ecardId = parseInt(params.id);
+    const resolvedParams = await params;
+    const ecardId = parseInt(resolvedParams.id);
     const userId = parseInt(session.user.id);
 
     if (!ecardId || isNaN(ecardId)) {
